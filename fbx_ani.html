@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - FBX loader</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+	</head>
+
+	<body style="background-color: blue;" >
+		<div id="info">
+			<a href="http://threejs.org" target="_blank" rel="noopener">three.js</a> - FBXLoader<br />
+			Character and animation from <a href="https://www.mixamo.com/" target="_blank" rel="noopener">Mixamo</a>
+		</div>
+		<div style="visibility: visible;height: 0px;">
+			<canvas width="512" height="512" id="T_CANVAS" >
+
+			</canvas>
+		</div>
+
+		<script type="module">
+		
+
+			import * as THREE from '../build/three.module.js';
+
+			import Stats from './jsm/libs/stats.module.js';
+
+			import { OrbitControls } from './jsm/controls/OrbitControls.js';
+			import { FBXLoader } from './jsm/loaders/FBXLoader.js';
+			import { RGBELoader } from './jsm/loaders/RGBELoader.js';
+			import { EquirectangularToCubeGenerator } from './jsm/loaders/EquirectangularToCubeGenerator.js';
+			import { PMREMGenerator } from './jsm/pmrem/PMREMGenerator.js';
+			import { PMREMCubeUVPacker } from './jsm/pmrem/PMREMCubeUVPacker.js';
+
+		
+			var container, stats, controls;
+			var camera, scene, renderer, light;
+			var texture_canvas;
+			var dyn_texture;
+			var clock = new THREE.Clock();
+			var time_count=0;
+			var mixer;
+			var main_cube;
+			texture_canvas= document.getElementById('T_CANVAS');
+
+			init();
+			animate();
+
+			function init() {
+
+				container = document.createElement( 'div' );
+				document.body.appendChild( container );
+
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
+				camera.position.set( 100, 200, 300 );
+				camera.lookAt(new THREE.Vector3(0,0,0));
+				scene = new THREE.Scene();
+				
+				scene.background = new THREE.Color( 0x000000 );
+				//scene.fog = new THREE.Fog( 0xa0a0a0, 200, 1000 );
+
+				light = new THREE.HemisphereLight( 0xffffff, 0x444444 );
+				light.position.set( 0, 200, 0 );
+				scene.add( light );
+
+				light = new THREE.DirectionalLight( 0xffffff );
+				light.position.set( 0, 200, 100 );
+				light.castShadow = true;
+				light.shadow.camera.top = 180;
+				light.shadow.camera.bottom = - 100;
+				light.shadow.camera.left = - 120;
+				light.shadow.camera.right = 120;
+				scene.add( light );
+
+				//scene.add( new CameraHelper( light.shadow.camera ) );
+
+				// ground
+				var mesh = new THREE.Mesh( new THREE.PlaneBufferGeometry( 2000, 2000 ), new THREE.MeshPhongMaterial( { color: 0x999999, depthWrite: false } ) );
+				mesh.rotation.x = - Math.PI / 2;
+				mesh.receiveShadow = false;
+				//scene.add( mesh );
+
+				var grid = new THREE.GridHelper( 2000, 20, 0x000000, 0x000000 );
+				grid.material.opacity = 0.2;
+				grid.material.transparent = false;
+				//scene.add( grid );
+				////////////////////////////////////////////////
+				new RGBELoader()
+					.setDataType( THREE.UnsignedByteType )
+					.setPath( 'textures/equirectangular/' )
+					.load( 'pedestrian_overpass_2k.hdr', function ( texture ) {
+
+						var cubeGenerator = new EquirectangularToCubeGenerator( texture, { resolution: 1024 } );
+						cubeGenerator.update( renderer );
+
+						var pmremGenerator = new PMREMGenerator( cubeGenerator.renderTarget.texture );
+						pmremGenerator.update( renderer );
+
+						var pmremCubeUVPacker = new PMREMCubeUVPacker( pmremGenerator.cubeLods );
+						pmremCubeUVPacker.update( renderer );
+
+						var envMap = pmremCubeUVPacker.CubeUVRenderTarget.texture;
+						//scene.background = cubeGenerator.renderTarget;
+					});
+
+
+				////////////////////////////////////////////////
+				// model
+				var loader = new FBXLoader();
+				loader.load( 'models/fbx/tri.fbx', function ( object ) {
+
+					mixer = new THREE.AnimationMixer( object );
+					main_cube=object;
+					var action = mixer.clipAction( object.animations[ 0 ] );
+					console.log(mixer);
+					action.play();
+					console.log(object);
+
+					dyn_texture = new THREE.Texture(texture_canvas);				
+					dyn_texture.needsUpdate = true;
+					console.log(dyn_texture);
+					var canvas_material = new THREE.MeshBasicMaterial( { map: dyn_texture ,needsUpdate:true,alpha:true} );
+					canvas_material.transparent = true;
+
+					object.traverse( function ( child ) {
+
+						if ( child.isMesh ) {
+
+							child.castShadow = false;
+							child.receiveShadow = false;
+							child.material.transparent = true;
+							child.material.needsUpdate=true;//=canvas_material;
+							child.material.map=dyn_texture;
+							//child.material=canvas_material;
+						}
+
+					} );
+					object.scale.set(0.1,0.5,0.5);
+					scene.add( object );
+
+				} );
+				//var texture = new THREE.Texture(getTextCanvas("HELLO WORLD"));
+				//
+				//texture.needsUpdate = true;
+				//console.log(texture);
+				//var canvas_material = new THREE.MeshBasicMaterial( { map: texture ,needsUpdate:true,alpha:true} );
+				//canvas_material.transparent = true;
+				////var geometry =  new THREE.BoxBufferGeometry( 5, 5, 5 );// new THREE.PlaneGeometry(128, 32);
+				//var geometry = new THREE.PlaneGeometry(128, 32);
+				//
+				//// 创建一个矩形平面网模型，Canvas画布作为矩形网格模型的纹理贴图
+				//var mesh = new THREE.Mesh(geometry, canvas_material);
+				//scene.add( mesh );
+
+
+				renderer = new THREE.WebGLRenderer( { antialias: true ,alpha:true} );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.shadowMap.enabled = false;
+				renderer.setClearAlpha(0.0);
+				renderer.setClearColor(0xEEEEEE, 0.0);
+				container.appendChild( renderer.domElement );
+
+				controls = new OrbitControls( camera, renderer.domElement );
+				controls.target.set( 0, 100, 0 );
+				controls.update();
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+				// stats
+				stats = new Stats();
+				container.appendChild( stats.dom );
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			//
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+				//console.log(mixer);
+				var delta = clock.getDelta();
+				time_count+= 0.1;
+				if(time_count>100)
+				{
+					time_count=0;
+				}
+				if( Math.abs(time_count-Math.ceil(time_count))<0.15 )
+				{
+					getTextCanvas(time_count.toString());
+					dyn_texture.needsUpdate=true;
+				}
+				if ( mixer ) {
+					//mixer._actions[0].time=time_count;
+					//mixer.update( 0.001 );
+				}
+				
+				
+				renderer.render( scene, camera );
+
+				stats.update();
+
+			}
+			function getTextCanvas(text){ 
+			
+			var ctx = texture_canvas.getContext('2d');
+			ctx.clearRect(0,0,512,512);  
+			ctx.fillStyle = '#FFFFFF00';
+			//ctx.fillRect(0, 0, 256, 256);
+			ctx.font = "16px consolas";
+			ctx.fillStyle = '#00FF00';
+			ctx.textAlign = 'center';
+			ctx.textBaseline = 'small';
+			
+			for (let i=0;i<33;i++)
+			{
+				ctx.fillText(createHash(72), 0,i*16);
+				//ctx.fillText(createHash(16), 2*128,i*16);
+				//ctx.fillText(createHash(16), 2*224,i*16);
+			}     
+			return ;//texture_canvas;
+			}
+			
+
+		function createHash (hashLength) {
+			if (!hashLength || typeof(Number(hashLength)) != 'number') {return;}
+			//var ar = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+			var ar =["蒸羊羔","蒸熊掌","蒸鹿尾儿","烧花鸭","烧雏鸡儿","烧子鹅","卤煮咸鸭","酱鸡","腊肉","松花","小肚儿","晾肉","香肠","什锦苏盘","熏鸡","白肚儿","清蒸八宝猪","江米酿鸭子","罐儿野鸡","罐儿鹌鹑","卤什锦","卤子鹅","卤虾","烩虾","炝虾仁儿","山鸡","兔脯","菜蟒","银鱼","清蒸哈什蚂","烩鸭腰儿","烩鸭条儿","清拌鸭丝儿","黄心管儿","焖白鳝","焖黄鳝","豆鼓鲇鱼","锅烧鲇鱼","烀皮甲鱼","锅烧鲤鱼","抓炒鲤鱼","软炸里脊","软炸鸡","什锦套肠","麻酥油卷儿","熘鲜蘑","熘鱼脯儿","熘鱼片儿","熘鱼肚儿","醋熘肉片儿","熘白蘑","烩三鲜","炒银鱼","烩鳗鱼","清蒸火腿","炒白虾","炝青蛤","炒面鱼","炝芦笋","芙蓉燕菜","炒肝尖儿","南炒肝关儿","油爆肚仁儿","汤爆肚领儿","炒金丝","烩银丝","糖熘饹炸儿","糖熘荸荠","蜜丝山药","拔丝鲜桃","熘南贝","炒南贝","烩鸭丝","烩散丹","清蒸鸡","黄焖鸡","大炒鸡","熘碎鸡","香酥鸡","炒鸡丁儿","熘鸡块儿","三鲜丁儿","八宝丁儿","清蒸玉兰片","炒虾仁儿","炒腰花儿","炒蹄筋儿","锅烧海参","锅烧白菜","炸海耳","浇田鸡","桂花翅子","清蒸翅子","炸飞禽","炸葱","炸排骨","烩鸡肠肚儿","烩南荠","盐水肘花儿","拌瓤子","炖吊子","锅烧猪蹄儿","烧鸳鸯","烧百合","烧苹果","酿果藕","酿江米","炒螃蟹.氽大甲","什锦葛仙米","石鱼","带鱼","黄花鱼","油泼肉","酱泼肉","红肉锅子","白肉锅子","菊花锅子.野鸡锅子","元宵锅子","杂面锅子","荸荠一品锅子","软炸飞禽","龙虎鸡蛋","猩唇","驼峰","鹿茸","熊掌","奶猪","奶鸭子","杠猪","挂炉羊","清蒸江瑶柱","糖熘鸡头米","拌鸡丝儿","拌肚丝儿","什锦豆腐","什锦丁儿","精虾","精蟹","精鱼","精熘鱼片儿","熘蟹肉","炒蟹肉","清拌蟹肉","蒸南瓜","酿倭瓜","炒丝瓜","焖冬瓜","焖鸡掌","焖鸭掌","焖笋","熘茭白","茄干儿晒卤肉","鸭羹","蟹肉羹","三鲜木樨汤","红丸子","白丸子","熘丸子","炸丸子","三鲜丸子","四喜丸子","氽丸子","葵花丸子","饹炸丸子","豆腐丸子","红炖肉","白炖肉","松肉","扣肉","烤肉","酱肉","荷叶卤","一品肉","樱桃肉","马牙肉","酱豆腐肉","坛子肉","罐儿肉","元宝肉","福禄肉","红肘子","白肘子","水晶肘子","蜜蜡肘子","烧烀肘子","扒肘条儿","蒸羊肉","烧羊肉","五香羊肉","酱羊肉.氽三样儿","爆三样儿","烧紫盖儿","炖鸭杂儿","熘白杂碎","三鲜鱼翅","栗子鸡","尖氽活鲤鱼","板鸭"];
+			var hs = [];
+			var hl = Number(hashLength)/4;
+			var al = ar.length;
+			for (var i = 0; i < hl; i ++) {
+				hs.push(ar[Math.floor(Math.random() * al)]);
+			}
+			
+			return hs.join('');
+		}
+		</script>
+
+	</body>
+</html>
