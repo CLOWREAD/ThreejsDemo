@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - FBX loader</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+	</head>
+
+	<body style="background-color: black;" >
+
+		<div id="MAIN_CANVAS"></div>
+		<div style="visibility: collapse;height: 0px;">
+			<canvas width="512" height="512" id="T_CANVAS" >
+
+			</canvas>
+		</div>
+		<div style="height:999rem;color:#FFF;">
+			sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>
+			sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>
+			sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>
+			sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>
+			sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>
+			sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>
+			sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>
+			sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>
+			sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>
+			sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>
+			sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>
+			sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>
+			sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>
+			sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>
+			sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>
+			sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>
+			sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>
+			sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>sampleText<br>SampleText<br>
+				  </div>
+		<script type="module">
+		
+
+			import * as THREE from '../build/three.module.js';
+
+			//import Stats from './jsm/libs/stats.module.js';
+
+			import { OrbitControls } from './jsm/controls/OrbitControls.js';
+			import { FBXLoader } from './jsm/loaders/FBXLoader.js';
+			import { RGBELoader } from './jsm/loaders/RGBELoader.js';
+			import { EquirectangularToCubeGenerator } from './jsm/loaders/EquirectangularToCubeGenerator.js';
+			import { PMREMGenerator } from './jsm/pmrem/PMREMGenerator.js';
+			import { PMREMCubeUVPacker } from './jsm/pmrem/PMREMCubeUVPacker.js';
+
+			
+			var container, stats, controls;
+			var camera, scene, renderer, light;
+			var texture_canvas;
+			var dyn_texture;
+			var canvas_material;
+			var clock = new THREE.Clock();
+			var time_count=0;
+			var mixer;
+			var main_cube;
+			var main_chip;
+			var tilesmap=new Array();
+			var galaxytextures=new Array();
+			texture_canvas= document.getElementById('T_CANVAS');
+
+			init();
+			animate();
+
+			async function  init()  {
+				//设置threejs容器
+				container = document.getElementById( 'MAIN_CANVAS' );
+				//设置摄像机
+				camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 5000 );
+				camera.position.set( 600, 600, 1000 );
+				camera.lookAt(new THREE.Vector3(0,0,0));
+				//console.log(camera);
+				//建立场景
+				scene = new THREE.Scene();				
+				//scene.background = new THREE.Color( 0x000000 );
+				scene.fog = new THREE.Fog( 0xa0a0a0, 800, 4000 );
+				//灯光
+				light = new THREE.HemisphereLight( 0xffffff, 0x888888 );
+				light.position.set( 0, 200, 0 );
+				scene.add( light );
+
+				light = new THREE.DirectionalLight( 0xffffff );
+				light.position.set( 0, 200, 100 );
+				light.castShadow = true;
+				light.shadow.camera.top = 180;
+				light.shadow.camera.bottom = - 100;
+				light.shadow.camera.left = - 120;
+				light.shadow.camera.right = 120;
+				scene.add( light );
+				/////////////////////////////////////////////////////////////////
+				
+				let galaxytexture =await new Promise(function(resolve,reject){
+					var loader = new THREE.TextureLoader();
+					loader.load('./textures/galaxymap00.png',function(texture){
+						resolve(texture);
+					});
+				});
+				galaxytextures.push(galaxytexture);
+
+				galaxytexture =await new Promise(function(resolve,reject){
+					var loader = new THREE.TextureLoader();
+					loader.load('./textures/galaxymap01.png',function(texture){
+						resolve(texture);
+					});
+				});
+				galaxytextures.push(galaxytexture);
+
+				galaxytexture =await new Promise(function(resolve,reject){
+					var loader = new THREE.TextureLoader();
+					loader.load('./textures/galaxymap02.png',function(texture){
+						resolve(texture);
+					});
+				});
+				galaxytextures.push(galaxytexture);
+
+
+				let galaxy_terrain =await new Promise(function(resolve,reject){
+					var loader = new THREE.TextureLoader();
+					loader.load('./textures/galaxy_terrain.png',function(texture){
+						resolve(texture);
+					});
+				})
+				
+				//console.log(galaxytexture);
+				var ctx = texture_canvas.getContext('2d');
+				ctx.fillStyle = '#000000FF';
+				ctx.fillRect(0, 0, 512, 512);
+				ctx.drawImage(galaxy_terrain.image,0,0,512,512);
+				
+				let planeMaterials=new Array();
+				for(let i=0;i<galaxytextures.length;i++)
+				{
+
+					let planeMaterial =new THREE.MeshLambertMaterial({map: galaxytextures[i],depthTest:false,side: THREE.DoubleSide});
+					planeMaterials.push(planeMaterial);
+				}				
+				//"F:\WebGL\examples\textures\lensflare\lensflare0_alpha.png"
+				let galaxy_terrain_width=512;
+				let galaxy_terrain_map_width=24;
+				for( let i=0 ;i<galaxy_terrain_map_width;i++)
+				{
+					
+					for( let j=0 ;j<galaxy_terrain_map_width;j++)
+					{
+						let terrain_type=ctx.getImageData(parseInt((i)/galaxy_terrain_map_width*galaxy_terrain_width),parseInt((j)/galaxy_terrain_map_width*galaxy_terrain_width),1,1);
+						//console.log(terrain_type.data);
+						let typehash=0.922127*terrain_type.data[0]+23.25234*terrain_type.data[1]+4539.12825*terrain_type.data[0];
+						typehash=typehash*1000;
+						typehash=parseInt(typehash);
+						typehash=typehash%(planeMaterials.length-1);
+						if(terrain_type.data[0]<=40 && terrain_type.data[1]<=40 && terrain_type.data[2]>=140)
+						{
+							let planeGeometry = new THREE.PlaneGeometry(400, 400, 10, 10) // 生成平面
+							//let planeMaterial = new THREE.MeshLambertMaterial({color: 0x004f00}) // 材质
+							let plane = new THREE.Mesh(planeGeometry, planeMaterials[2])
+
+							plane.transparent=true;
+							plane.material.transparent=true;
+							plane.rotation.z = Math.random()*3.14159;//-0.5 * Math.PI;
+							plane.position.x = (i-galaxy_terrain_map_width/2) *10;
+							plane.position.y = (Math.random()-0.5)*160;
+							plane.position.z = (j-galaxy_terrain_map_width/2) *10;
+							plane.scale.x=0.5;
+							plane.scale.y=0.5;
+							plane.scale.z=0.5;
+							scene.add( plane );
+							var tile_position=deepcopy(plane.position);
+							var tile_opacity=deepcopy(plane.material.opacity);
+							var tile= {mesh:plane,position:tile_position,opacity:tile_opacity};
+							tilesmap.push(tile);
+							continue;
+						}
+						if(terrain_type.data[0]>=40 || terrain_type.data[1]>=40 || terrain_type.data[2]>=40)
+						{
+							let scale=terrain_type.data[1]+terrain_type.data[2]+terrain_type.data[0];
+							scale=scale/4.6;
+							scale=scale/255;
+							let planeGeometry = new THREE.PlaneGeometry(400, 400, 10, 10) // 生成平面
+							//let planeMaterial = new THREE.MeshLambertMaterial({color: 0x004f00}) // 材质
+							let plane = new THREE.Mesh(planeGeometry, planeMaterials[typehash])
+
+							plane.transparent=true;
+							plane.material.transparent=true;
+							plane.rotation.z = Math.random()*3.14159;//-0.5 * Math.PI;
+							plane.position.x = (i-galaxy_terrain_map_width/2) *30;
+							plane.position.y = (Math.random()-0.5)*160;
+							plane.position.z = (j-galaxy_terrain_map_width/2) *30;
+							plane.scale.x=scale;//0.3*Math.random()+0.7;
+							plane.scale.y=scale;//0.3*Math.random()+0.7;
+							plane.scale.z=scale;//0.3*Math.random()+0.7;
+							//plane.material.opacity=scale*1.5;
+							var tile_position=deepcopy(plane.position);
+							var tile_opacity=deepcopy(plane.material.opacity);
+							var tile= {mesh:plane,position:tile_position,opacity:tile_opacity};
+							tilesmap.push(tile);
+							scene.add( plane );
+							continue;
+						}
+					}
+				}
+//////////////////////////////////////////////////////////////////////////////////////////
+				//设置动态纹理
+				dyn_texture = new THREE.Texture(texture_canvas);				
+				dyn_texture.needsUpdate = true;
+				
+				canvas_material = new THREE.MeshBasicMaterial( { map: dyn_texture ,needsUpdate:true,alpha:true} );
+				canvas_material.transparent = true;
+				
+				//数字面板
+				var mesh = new THREE.Mesh( new THREE.PlaneBufferGeometry( 180, 180 ), canvas_material );
+				mesh.rotation.x = - Math.PI / 2;
+				mesh.receiveShadow = false;
+				mesh.position.y=20
+				//scene.add( mesh );
+
+
+
+				var loader = new FBXLoader();
+//				////////////////////////////////////////////////
+//				// 芯片
+//				loader.load( 'models/fbx/cube.fbx', function ( object ) {
+//
+//					//mixer = new THREE.AnimationMixer( object );
+//					main_cube=object;
+//					//var action = mixer.clipAction( object.animations[ 0 ] );
+//					//console.log(mixer);
+//					//action.play();
+//					//console.log(object);
+//
+//					
+//					canvas_material = new THREE.MeshBasicMaterial( { map: dyn_texture ,needsUpdate:true,alpha:true} );
+//					canvas_material.transparent = true;
+//
+//					object.traverse( function ( child ) {
+//
+//						if ( child.isMesh ) {
+//
+//							child.castShadow = false;
+//							child.receiveShadow = false;
+//							child.material.transparent = true;
+//							child.material.needsUpdate=true;//=canvas_material;
+//							child.material.map=dyn_texture;
+//							//child.material=canvas_material;
+//						}
+//
+//					} );
+//					object.position.y=200.0;
+//					//object.scale.set(0.1,0.5,0.5);
+//					//scene.add( object );
+//
+//				} );
+
+
+				//新建
+//				loader.load( 'models/fbx/chip.fbx', function ( object ) {
+//
+//					main_chip=object;
+//					console.log(main_chip);
+//				object.traverse( function ( child ) {
+//
+//					if ( child.isMesh ) {
+//
+//						child.castShadow = false;
+//						child.receiveShadow = false;
+//						child.material.transparent = true;
+//		
+//					}
+//
+//				} );
+//				//object.scale.set(0.1,0.5,0.5);
+//				scene.add( object );
+//
+//				} );
+				
+				//////////////////////////////////////////////////////////////////////
+				  /*背景星星*/
+				  var particles = 20000; //星星数量
+	                /*buffer做星星*/
+	                var bufferGeometry = new THREE.BufferGeometry();
+
+					var positions = new Float32Array(particles * 3);
+					//var scales = new Float32Array(particles * 3);
+	                var colors = new Float32Array(particles * 3);
+
+	                var color = new THREE.Color();
+
+	                var gap = 1200; // 定义星星的最近出现位置
+
+	                for (var i = 0; i < positions.length; i += 3) {
+
+	                        // positions
+
+	                        /*-2gap < x < 2gap */
+	                        var x = Math.random() * gap * 2 * (Math.random() < .5 ? -1 : 1);
+	                        var y = Math.random() * gap * 2 * (Math.random() < .5 ? -1 : 1);
+	                        var z = Math.random() * gap * 2 * (Math.random() < .5 ? -1 : 1);
+
+	                        /*找出x,y,z中绝对值最大的一个数*/
+	                        var biggest = Math.abs(x) > Math.abs(y) ? Math.abs(x) > Math.abs(z) ? 'x' : 'z' : Math.abs(y) > Math.abs(z) ? 'y' : 'z';
+
+	                        var pos = { x: x, y: y, z: z };
+
+	                        /*如果最大值比n要小（因为要在一个距离之外才出现星星）则赋值为n（-n）*/
+	                        if (Math.abs(pos[biggest]) < gap) pos[biggest] = pos[biggest] < 0 ? -gap : gap;
+
+	                        x = pos['x'];
+	                        y = pos['y'];
+	                        z = pos['z'];
+
+	                        positions[i] = x;
+	                        positions[i + 1] = y;
+	                        positions[i + 2] = z;
+
+	                        // colors
+
+	                        /*70%星星有颜色*/
+	                        var hasColor = Math.random() > 0.3;
+	                        var vx = undefined,
+	                            vy = undefined,
+	                            vz = undefined;
+
+	                        if (hasColor) {
+	                                vx = (Math.random() + 1) / 2;
+	                                vy = (Math.random() + 1) / 2;
+	                                vz = (Math.random() + 1) / 2;
+	                        } else {
+	                                vx = 1;
+	                                vy = 1;
+	                                vz = 1;
+	                        }
+
+	                        /*let vx = ( Math.abs(x) / n*2 ) ;
+	                        var vy = ( Math.abs(y) / n*2 ) ;
+	                        var vz = ( Math.abs(z) / n*2 ) ;*/
+
+	                        color.setRGB(vx, vy, vz);
+
+	                        colors[i] = color.r;
+	                        colors[i + 1] = color.g;
+							colors[i + 2] = color.b;
+							//scales[i]=   10.7+Math.random();
+							//scales[i+1]= 10.7+Math.random();
+							//scales[i+2]= 10.7+Math.random();
+	                }
+
+					bufferGeometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
+					//bufferGeometry.addAttribute('scale', new THREE.BufferAttribute(scales, 3));
+	                bufferGeometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
+	                //bufferGeometry.computeBoundingSphere();
+
+	                /*星星的material*/
+	                var material = new THREE.PointsMaterial({ size: 6, vertexColors: THREE.VertexColors });
+	                var particleSystem = new THREE.Points(bufferGeometry, material);
+	                scene.add(particleSystem);
+
+
+				/////////////////////////////////////////////////////////////////////
+
+
+
+				renderer = new THREE.WebGLRenderer( { antialias: true ,alpha:true} );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.shadowMap.enabled = false;
+				renderer.setClearAlpha(0.0);
+				renderer.setClearColor(0xEEEEEE, 0.0);
+				container.appendChild( renderer.domElement );
+
+				//controls = new OrbitControls( camera, renderer.domElement );
+				//controls.target.set( 0, 100, 0 );
+				//controls.update();
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+				
+				
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+				//console.log(mixer);
+				var delta = clock.getDelta();
+				time_count+= 0.1;
+				if(time_count>100)
+				{
+					time_count=0;
+				}
+				//updatechip();
+				updatestyle();
+				updatecamera();
+				updatetile();
+				//updatecube();
+				if( Math.abs(time_count-Math.ceil(time_count))<0.15 )
+				{
+					getTextCanvas(time_count.toString());
+					dyn_texture.needsUpdate=true;
+				}
+				if ( mixer ) {
+					//mixer._actions[0].time=time_count;
+					//mixer.update( 0.001 );
+				}
+				
+				
+				renderer.render( scene, camera );
+
+				
+
+			}
+			function getscrolltop()
+			{
+				let t=document.documentElement.scrollTop;
+				let t_t=document.body.scrollTop;
+				if(t_t>t )
+				{
+					t=t_t;
+				}
+				let t_f=parseFloat(t);
+				return t_f;
+			}
+ 			function updatecamera()
+			{
+				let t_f=getscrolltop();
+				t_f=clamp(t_f,0,1800);
+				camera.position.set( clamp(600-(t_f/2),0,600),  1000-(t_f/1.8)+800, 900-(t_f/2) );
+				camera.lookAt(new THREE.Vector3(0,0,0));
+			}
+			function updatestyle()
+			{
+				let t_f=getscrolltop();
+				if(t_f<2000)
+				{
+					container.style.top="0px";
+					container.style.position="fixed";
+				}else{
+					container.style.top="2000px";
+					container.style.position="absolute";
+				}
+
+			}
+			function updatetile()
+			{
+
+				
+
+
+				let t_f=getscrolltop();
+				let opacity=clamp(1800-t_f,0,300)/300;
+				let sintheta=Math.sin( time_count/100*2*3.14);
+				let costheta=Math.cos( time_count/100*2*3.14);
+
+				for (let i =0;i<tilesmap.length;i++)
+				{
+					tilesmap[i].mesh.position.x=costheta*tilesmap[i].position.x +sintheta*tilesmap[i].position.z
+					tilesmap[i].mesh.position.z= -sintheta*tilesmap[i].position.x +costheta*tilesmap[i].position.z
+					tilesmap[i].mesh.material.opacity=opacity/2;
+					tilesmap[i].mesh.rotation.x=camera.rotation.x;
+					tilesmap[i].mesh.rotation.y=camera.rotation.y;
+					//tilesmap[i].rotation.z=camera.rotation.z;
+					//tilesmap[i].rotation.z=clamp_loop(tilesmap[i].rotation.z+0.01,0,2*3.14159);
+				}
+			}
+			function updatechip()
+			{
+				let parse=Math.sin(time_count/2);
+				main_chip.children[2].material.color.g=-parse*0.3+0.54;
+				main_chip.children[2].material.color.r=parse*0.0+0.14;
+				main_chip.children[2].material.color.b=parse*0.3+0.54;
+			}
+			function updatecube()
+			{
+				//main_cube.rotation.x += controls.rotationSpeed*t_f/18*3.14159;
+				//main_cube.rotation.y += controls.rotationSpeed*t_f/18*3.14159;
+				//main_cube.rotation.z += controls.rotationSpeed*t_f/18*3.14159;
+				main_cube.rotation.x += 0.0024*3.14159;
+				main_cube.rotation.y += 0.0024*3.14159;
+				main_cube.rotation.z += 0.0024*3.14159;
+				main_cube.rotation.x=clamp_loop(main_cube.rotation.x,0,2*3.14159);
+				main_cube.rotation.y=clamp_loop(main_cube.rotation.y,0,2*3.14159);
+				main_cube.rotation.z=clamp_loop(main_cube.rotation.z,0,2*3.14159);
+			}
+
+			function getTextCanvas(text){ 
+			
+			let t_f=getscrolltop();
+			let opacity= parseInt(clamp(2000-t_f,0,300)/300*255);
+			let HexChar=['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F']
+			let HexStr=HexChar[parseInt(opacity/16)]+HexChar[parseInt(opacity%16)];
+		
+			var ctx = texture_canvas.getContext('2d');
+			ctx.fillStyle = '#FFFFFFFF';
+			ctx.fillRect(0, 0, 256, 256);
+			ctx.clearRect(0,0,512,512);  
+			ctx.font = "64px consolas";
+			ctx.fillStyle = '#A0AFFF'+HexStr;
+			ctx.textAlign = 'center';
+			ctx.textBaseline = 'small';
+			
+			for (let i=0;i<10;i++)
+			{
+				ctx.fillText(createHash(14), 256,i*64-14);
+				//ctx.fillText(createHash(16), 2*128,i*16);
+				//ctx.fillText(createHash(16), 2*224,i*16);
+			}
+			if(t_f>1700)
+			{
+				ctx.fillStyle = '#A0AFFF';
+				ctx.clearRect(256-140,256-60,280,140);  
+				ctx.fillText(" BLOCK ", 256,4*64-14);
+				ctx.fillText(" INSIGHT ", 256,5*64-14);
+			}
+
+			return ;//texture_canvas;
+			}
+			
+
+		function createHash (hashLength) {
+			if (!hashLength || typeof(Number(hashLength)) != 'number') {return;}
+			var ar = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+			//var ar =["蒸羊羔","蒸熊掌","蒸鹿尾儿","烧花鸭","烧雏鸡儿","烧子鹅","卤煮咸鸭","酱鸡","腊肉","松花","小肚儿","晾肉","香肠","什锦苏盘","熏鸡","白肚儿","清蒸八宝猪","江米酿鸭子","罐儿野鸡","罐儿鹌鹑","卤什锦","卤子鹅","卤虾","烩虾","炝虾仁儿","山鸡","兔脯","菜蟒","银鱼","清蒸哈什蚂","烩鸭腰儿","烩鸭条儿","清拌鸭丝儿","黄心管儿","焖白鳝","焖黄鳝","豆鼓鲇鱼","锅烧鲇鱼","烀皮甲鱼","锅烧鲤鱼","抓炒鲤鱼","软炸里脊","软炸鸡","什锦套肠","麻酥油卷儿","熘鲜蘑","熘鱼脯儿","熘鱼片儿","熘鱼肚儿","醋熘肉片儿","熘白蘑","烩三鲜","炒银鱼","烩鳗鱼","清蒸火腿","炒白虾","炝青蛤","炒面鱼","炝芦笋","芙蓉燕菜","炒肝尖儿","南炒肝关儿","油爆肚仁儿","汤爆肚领儿","炒金丝","烩银丝","糖熘饹炸儿","糖熘荸荠","蜜丝山药","拔丝鲜桃","熘南贝","炒南贝","烩鸭丝","烩散丹","清蒸鸡","黄焖鸡","大炒鸡","熘碎鸡","香酥鸡","炒鸡丁儿","熘鸡块儿","三鲜丁儿","八宝丁儿","清蒸玉兰片","炒虾仁儿","炒腰花儿","炒蹄筋儿","锅烧海参","锅烧白菜","炸海耳","浇田鸡","桂花翅子","清蒸翅子","炸飞禽","炸葱","炸排骨","烩鸡肠肚儿","烩南荠","盐水肘花儿","拌瓤子","炖吊子","锅烧猪蹄儿","烧鸳鸯","烧百合","烧苹果","酿果藕","酿江米","炒螃蟹.氽大甲","什锦葛仙米","石鱼","带鱼","黄花鱼","油泼肉","酱泼肉","红肉锅子","白肉锅子","菊花锅子.野鸡锅子","元宵锅子","杂面锅子","荸荠一品锅子","软炸飞禽","龙虎鸡蛋","猩唇","驼峰","鹿茸","熊掌","奶猪","奶鸭子","杠猪","挂炉羊","清蒸江瑶柱","糖熘鸡头米","拌鸡丝儿","拌肚丝儿","什锦豆腐","什锦丁儿","精虾","精蟹","精鱼","精熘鱼片儿","熘蟹肉","炒蟹肉","清拌蟹肉","蒸南瓜","酿倭瓜","炒丝瓜","焖冬瓜","焖鸡掌","焖鸭掌","焖笋","熘茭白","茄干儿晒卤肉","鸭羹","蟹肉羹","三鲜木樨汤","红丸子","白丸子","熘丸子","炸丸子","三鲜丸子","四喜丸子","氽丸子","葵花丸子","饹炸丸子","豆腐丸子","红炖肉","白炖肉","松肉","扣肉","烤肉","酱肉","荷叶卤","一品肉","樱桃肉","马牙肉","酱豆腐肉","坛子肉","罐儿肉","元宝肉","福禄肉","红肘子","白肘子","水晶肘子","蜜蜡肘子","烧烀肘子","扒肘条儿","蒸羊肉","烧羊肉","五香羊肉","酱羊肉.氽三样儿","爆三样儿","烧紫盖儿","炖鸭杂儿","熘白杂碎","三鲜鱼翅","栗子鸡","尖氽活鲤鱼","板鸭"];
+			var hs = [];
+			var hl = Number(hashLength);
+			var al = ar.length;
+			for (var i = 0; i < hl; i ++) {
+				hs.push(ar[Math.floor(Math.random() * al)]);
+			}
+			
+			return hs.join('');
+		}
+		function deepcopy(o)
+		{
+			let str=JSON.stringify(o);
+			var obj = JSON.parse(str);
+			return obj;
+		}
+	function  clamp(x,l,g)
+    {
+      if(x<l)
+      {
+        return l;
+      }
+      if(x>g)
+      {
+        return g;
+      }
+      return x;
+    }
+	function  clamp_loop(x,l,g)
+    {
+      if(x<l)
+      {
+        return g;
+      }
+      if(x>g)
+      {
+        return l;
+      }
+      return x;
+    }
+		</script>
+
+	</body>
+</html>
