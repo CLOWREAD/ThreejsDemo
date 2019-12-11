@@ -15,7 +15,7 @@ import {
 	HalfFloatType,
 	RGBAFormat,
 	RGBFormat
-} from "../../../build/three.module.js";
+} from "../../build/three.module.js";
 
 // /*
 // Copyright (c) 2014 - 2017, Syoyo Fujita

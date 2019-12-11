@@ -23,7 +23,7 @@ import {
 	Object3D,
 	RepeatWrapping,
 	TextureLoader
-} from "../../../build/three.module.js";
+} from "../../build/three.module.js";
 
 var AssimpJSONLoader = function ( manager ) {
 

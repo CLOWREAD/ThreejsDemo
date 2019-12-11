@@ -11,7 +11,7 @@
 import {
 	DefaultLoadingManager,
 	FileLoader
-} from "../../../build/three.module.js";
+} from "../../build/three.module.js";
 
 var TTFLoader = function ( manager ) {
 

@@ -14,7 +14,7 @@ import {
 	Group,
 	Math as _Math,
 	Vector3
-} from "../../../build/three.module.js";
+} from "../../build/three.module.js";
 
 var CarControls = ( function ( ) {
 

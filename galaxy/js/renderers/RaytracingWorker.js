@@ -3,7 +3,7 @@ var startX, startY;
 
 var scene, camera, renderer, loader, sceneId;
 
-importScripts( '../../../build/three.js' );
+importScripts( '../../build/three.js' );
 
 
 self.onmessage = function ( e ) {

@@ -94,7 +94,7 @@ import {
 	Vector4,
 	VectorKeyframeTrack,
 	ZeroFactor
-} from "../../../../build/three.module.js";
+} from "../../../build/three.module.js";
 
 var LegacyGLTFLoader = ( function () {
 

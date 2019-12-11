@@ -12,7 +12,7 @@ import {
 	Vector3,
 	Quaternion,
 	Matrix4
-} from "../../../../../build/three.module.js";
+} from "../../../../build/three.module.js";
 
 import { SEA3DSDK } from '../SEA3DSDK.js';
 import { SEA3D } from '../SEA3DLoader.js';

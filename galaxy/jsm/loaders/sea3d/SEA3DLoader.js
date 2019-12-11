@@ -72,7 +72,7 @@ import {
 	HemisphereLight,
 	AmbientLight,
 	DirectionalLight
-} from "../../../../build/three.module.js";
+} from "../../../build/three.module.js";
 
 import { SEA3DSDK } from "./SEA3DSDK.js";
 
