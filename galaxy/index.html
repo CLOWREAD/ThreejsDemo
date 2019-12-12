@@ -78,7 +78,7 @@
 				//建立场景
 				scene = new THREE.Scene();				
 				//scene.background = new THREE.Color( 0x000000 );
-				scene.fog = new THREE.Fog( 0xa0a0a0, 800, 4000 );
+				//scene.fog = new THREE.Fog( 0xa0a0a0, 800, 4000 );
 				//灯光
 				light = new THREE.HemisphereLight( 0xffffff, 0x888888 );
 				light.position.set( 0, 200, 0 );
@@ -92,6 +92,14 @@
 				light.shadow.camera.left = - 120;
 				light.shadow.camera.right = 120;
 				scene.add( light );
+				/////////////////////////////////////////////////////////////////
+				dyn_texture = new THREE.Texture(texture_canvas);				
+				dyn_texture.needsUpdate = true;
+				
+				canvas_material = new THREE.MeshBasicMaterial( { map: dyn_texture ,needsUpdate:true,alpha:true,depthTest:false,side: THREE.DoubleSide} );
+				canvas_material.transparent = true;
+
+
 				/////////////////////////////////////////////////////////////////
 				
 				let galaxytexture =await new Promise(function(resolve,reject){
@@ -118,6 +126,22 @@
 				});
 				galaxytextures.push(galaxytexture);
 
+				galaxytexture =await new Promise(function(resolve,reject){
+					var loader = new THREE.TextureLoader();
+					loader.load('./textures/galaxymap03.png',function(texture){
+						resolve(texture);
+					});
+				});
+				galaxytextures.push(galaxytexture);
+
+				galaxytexture =await new Promise(function(resolve,reject){
+					var loader = new THREE.TextureLoader();
+					loader.load('./textures/galaxymap_center.png',function(texture){
+						resolve(texture);
+					});
+				});
+				galaxytextures.push(galaxytexture);
+
 
 				let galaxy_terrain =await new Promise(function(resolve,reject){
 					var loader = new THREE.TextureLoader();
@@ -128,6 +152,7 @@
 				
 				//console.log(galaxytexture);
 				var ctx = texture_canvas.getContext('2d');
+				console.log(ctx);
 				ctx.fillStyle = '#000000FF';
 				ctx.fillRect(0, 0, 512, 512);
 				ctx.drawImage(galaxy_terrain.image,0,0,512,512);
@@ -141,7 +166,7 @@
 				}				
 				//"F:\WebGL\examples\textures\lensflare\lensflare0_alpha.png"
 				let galaxy_terrain_width=512;
-				let galaxy_terrain_map_width=24;
+				let galaxy_terrain_map_width=32;
 				for( let i=0 ;i<galaxy_terrain_map_width;i++)
 				{
 					
@@ -153,32 +178,35 @@
 						typehash=typehash*1000;
 						typehash=parseInt(typehash);
 						typehash=typehash%(planeMaterials.length-1);
+						//如果是核心
 						if(terrain_type.data[0]<=40 && terrain_type.data[1]<=40 && terrain_type.data[2]>=140)
 						{
 							let planeGeometry = new THREE.PlaneGeometry(400, 400, 10, 10) // 生成平面
 							//let planeMaterial = new THREE.MeshLambertMaterial({color: 0x004f00}) // 材质
-							let plane = new THREE.Mesh(planeGeometry, planeMaterials[2])
+							let plane = new THREE.Mesh(planeGeometry, canvas_material)
 
 							plane.transparent=true;
 							plane.material.transparent=true;
-							plane.rotation.z = Math.random()*3.14159;//-0.5 * Math.PI;
-							plane.position.x = (i-galaxy_terrain_map_width/2) *10;
-							plane.position.y = (Math.random()-0.5)*160;
-							plane.position.z = (j-galaxy_terrain_map_width/2) *10;
+							plane.rotation.z = ((parseInt(Math.random()*1000))%4)*3.14159/2;//-0.5 * Math.PI;
+							plane.position.x = (i-galaxy_terrain_map_width/2) *0;
+							plane.position.y = 0;//(Math.random()-0.5)*160;
+							plane.position.z = (j-galaxy_terrain_map_width/2) *0;
 							plane.scale.x=0.5;
 							plane.scale.y=0.5;
 							plane.scale.z=0.5;
+							plane.material.opacity=1.5;
 							scene.add( plane );
 							var tile_position=deepcopy(plane.position);
 							var tile_opacity=deepcopy(plane.material.opacity);
-							var tile= {mesh:plane,position:tile_position,opacity:tile_opacity};
+							var tile= {mesh:plane,position:tile_position,opacity:2.0,core:true};
 							tilesmap.push(tile);
 							continue;
 						}
+						//如果不是核心
 						if(terrain_type.data[0]>=40 || terrain_type.data[1]>=40 || terrain_type.data[2]>=40)
 						{
 							let scale=terrain_type.data[1]+terrain_type.data[2]+terrain_type.data[0];
-							scale=scale/4.6;
+							scale=scale/3;
 							scale=scale/255;
 							let planeGeometry = new THREE.PlaneGeometry(400, 400, 10, 10) // 生成平面
 							//let planeMaterial = new THREE.MeshLambertMaterial({color: 0x004f00}) // 材质
@@ -186,17 +214,17 @@
 
 							plane.transparent=true;
 							plane.material.transparent=true;
-							plane.rotation.z = Math.random()*3.14159;//-0.5 * Math.PI;
+							plane.rotation.z = ((parseInt(Math.random()*1000))%4)*3.14159/2;
 							plane.position.x = (i-galaxy_terrain_map_width/2) *30;
 							plane.position.y = (Math.random()-0.5)*160;
 							plane.position.z = (j-galaxy_terrain_map_width/2) *30;
-							plane.scale.x=scale;//0.3*Math.random()+0.7;
-							plane.scale.y=scale;//0.3*Math.random()+0.7;
-							plane.scale.z=scale;//0.3*Math.random()+0.7;
-							//plane.material.opacity=scale*1.5;
+							plane.scale.x=scale*0.4;//0.3*Math.random()+0.7;
+							plane.scale.y=scale*0.4;//0.3*Math.random()+0.7;
+							plane.scale.z=scale*0.4;//0.3*Math.random()+0.7;
+							plane.material.opacity=scale*0.950;
 							var tile_position=deepcopy(plane.position);
 							var tile_opacity=deepcopy(plane.material.opacity);
-							var tile= {mesh:plane,position:tile_position,opacity:tile_opacity};
+							var tile= {mesh:plane,position:tile_position,opacity:tile_opacity,core:false};
 							tilesmap.push(tile);
 							scene.add( plane );
 							continue;
@@ -205,11 +233,7 @@
 				}
 //////////////////////////////////////////////////////////////////////////////////////////
 				//设置动态纹理
-				dyn_texture = new THREE.Texture(texture_canvas);				
-				dyn_texture.needsUpdate = true;
 				
-				canvas_material = new THREE.MeshBasicMaterial( { map: dyn_texture ,needsUpdate:true,alpha:true} );
-				canvas_material.transparent = true;
 				
 				//数字面板
 				var mesh = new THREE.Mesh( new THREE.PlaneBufferGeometry( 180, 180 ), canvas_material );
@@ -470,9 +494,14 @@
 				{
 					tilesmap[i].mesh.position.x=costheta*tilesmap[i].position.x +sintheta*tilesmap[i].position.z
 					tilesmap[i].mesh.position.z= -sintheta*tilesmap[i].position.x +costheta*tilesmap[i].position.z
-					tilesmap[i].mesh.material.opacity=opacity/2;
+					if(tilesmap[i].core==false)
+					{
+					tilesmap[i].mesh.material.opacity=opacity*tilesmap[i].opacity*0.95;
+					}
 					tilesmap[i].mesh.rotation.x=camera.rotation.x;
 					tilesmap[i].mesh.rotation.y=camera.rotation.y;
+					tilesmap[i].mesh.rotation.z=camera.rotation.z;
+					
 					//tilesmap[i].rotation.z=camera.rotation.z;
 					//tilesmap[i].rotation.z=clamp_loop(tilesmap[i].rotation.z+0.01,0,2*3.14159);
 				}
@@ -500,37 +529,92 @@
 			function getTextCanvas(text){ 
 			
 			let t_f=getscrolltop();
-			let opacity= parseInt(clamp(2000-t_f,0,300)/300*255);
+			let opacity= parseFloat(clamp(2000-t_f,0,600)/600.0);
+			let borderradius= parseFloat(clamp(2000-t_f,0,2000)/2000.0);
 			let HexChar=['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F']
 			let HexStr=HexChar[parseInt(opacity/16)]+HexChar[parseInt(opacity%16)];
 		
 			var ctx = texture_canvas.getContext('2d');
-			ctx.fillStyle = '#FFFFFFFF';
-			ctx.fillRect(0, 0, 256, 256);
+
+			//清除canvas并设置字体和颜色属性
+			ctx.globalAlpha=1.0
+			ctx.fillStyle = 'rgb(0,128,0)';
 			ctx.clearRect(0,0,512,512);  
+			//ctx.fillRect(0, 0, 512, 512);
 			ctx.font = "64px consolas";
-			ctx.fillStyle = '#A0AFFF'+HexStr;
+			ctx.fillStyle = 'rgb(0,255,0)';
 			ctx.textAlign = 'center';
 			ctx.textBaseline = 'small';
 			
+			
+			//圆角矩形遮罩
+			drawRoundRect(ctx,2,2,511,511,256-((1-borderradius)*256))
+			ctx.save();
+			ctx.clip();
+			ctx.globalAlpha=1;
+			ctx.fillStyle = 'rgb(0,0,0)';
+			ctx.fill();
+			
+			//文字
+			ctx.fillStyle = 'rgb(0,255,0)';			
+			ctx.globalAlpha=Math.pow(clamp((parseInt(opacity))*0.99-0.15,0,1),1.2);
 			for (let i=0;i<10;i++)
 			{
 				ctx.fillText(createHash(14), 256,i*64-14);
 				//ctx.fillText(createHash(16), 2*128,i*16);
 				//ctx.fillText(createHash(16), 2*224,i*16);
 			}
-			if(t_f>1700)
+			//光晕
+			ctx.globalAlpha=1;
+			ctx.strokeStyle="#00FF00";
+			ctx.lineWidth=112;
+			ctx.stroke();
+			ctx.strokeStyle="#00BF00";
+			ctx.lineWidth=96;
+			ctx.stroke();
+			ctx.strokeStyle="#008F00";
+			ctx.lineWidth=80;
+			ctx.stroke();
+			ctx.strokeStyle="#004F00";
+			ctx.lineWidth=64;
+			ctx.stroke();
+			ctx.strokeStyle="#002F00";
+			ctx.lineWidth=48;
+			ctx.stroke();
+			ctx.strokeStyle="#001F00";
+			ctx.lineWidth=32;
+			ctx.stroke();
+			if(t_f>1500)
 			{
-				ctx.fillStyle = '#A0AFFF';
-				ctx.clearRect(256-140,256-60,280,140);  
+				ctx.globalAlpha=1-clamp((parseInt(opacity))*0.99+0.0,0,1);
+				ctx.fillStyle = '#00FF00FF';
+				//ctx.clearRect(256-140,256-60,280,140);  
 				ctx.fillText(" BLOCK ", 256,4*64-14);
 				ctx.fillText(" INSIGHT ", 256,5*64-14);
 			}
-
+			ctx.restore()
+			ctx.globalAlpha=1;
 			return ;//texture_canvas;
-			}
-			
+		}
+		function drawRoundRect(ctx,x,y,width,height,radius){
+		//ctx.save()
+		ctx.lineTo(x,y)
+		pathRoundRect(ctx,width,height,radius)
+		ctx.stroke()
 
+		//ctx.restore()
+		}
+		function pathRoundRect(ctx,width,height,radius){
+		ctx.beginPath()
+		ctx.arc(width-radius,height-radius,radius,0,Math.PI/2)
+		ctx.lineTo(radius,height)
+		ctx.arc(radius,height-radius,radius,Math.PI/2,Math.PI)
+		ctx.lineTo(0,radius)
+		ctx.arc(radius,radius,radius,Math.PI,Math.PI*3/2)
+		ctx.lineTo(width-radius,0)
+		ctx.arc(width-radius,radius,radius,Math.PI*3/2,Math.PI*2)
+		ctx.closePath()
+		}
 		function createHash (hashLength) {
 			if (!hashLength || typeof(Number(hashLength)) != 'number') {return;}
 			var ar = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
